@@ -3,15 +3,16 @@ package it.etiqa.smstest
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.ActivityCompat.shouldShowRequestPermissionRationale
 import android.support.v4.content.ContextCompat
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
-import android.widget.EditText
+import it.etiqa.smstest.R.id.activateSend
+import it.etiqa.smstest.R.id.serverUrlInput
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,26 +23,27 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         checkPermissions()
+        configureSwitch()
         loadServerUrl()
     }
 
-    fun checkPermissions () {
+    private fun checkPermissions () {
         Log.i(TAG, "_____________________________________________________________")
 
         // Here, thisActivity is the current activity
         if (ContextCompat.checkSelfPermission(this,
-                        Manifest.permission.READ_SMS)
+                        Manifest.permission.RECEIVE_SMS)
                 != PackageManager.PERMISSION_GRANTED) {
 
             Log.i(TAG, "Permission not granted yet")
 
             if (shouldShowRequestPermissionRationale(this,
-                            Manifest.permission.READ_SMS)) {
+                            Manifest.permission.RECEIVE_SMS)) {
                 Log.i(TAG, "Permission rationale required")
 
             } else {
                 ActivityCompat.requestPermissions(this,
-                        arrayOf(Manifest.permission.READ_SMS),
+                        arrayOf(Manifest.permission.RECEIVE_SMS),
                         1)
                 Log.i(TAG, "Permission rationale not required ")
             }
@@ -50,26 +52,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun loadServerUrl() {
-        val serverUrlInput = findViewById<EditText>(R.id.serverUrl)
-        val sharedPref = getPreferences(Context.MODE_PRIVATE) ?: return
-        val defaultValue = resources.getString(R.string.server_url)
-        val serverUrl = sharedPref.getString(getString(R.string.server_url), defaultValue)
+    private fun configureSwitch () {
+        val sharedPref = getSharedPreferences(TAG, Context.MODE_PRIVATE)
+        val activateLabel = getString(R.string.activated_state_label)
+
+        // remember status from sharedproperties
+        activateSend.isChecked = sharedPref.getBoolean(activateLabel, false)
+
+        activateSend.setOnCheckedChangeListener { _, isChecked -> run {
+
+            with (sharedPref.edit()) {
+                    putBoolean(activateLabel, isChecked)
+                commit()
+                }
+            }
+        }
+    }
+
+    private fun loadServerUrl() {
+        val sharedPref = getSharedPreferences(TAG, Context.MODE_PRIVATE) ?: return
+        val defaultValue = resources.getString(R.string.server_url_placeholder)
+        val serverUrl = sharedPref.getString(getString(R.string.server_url_label), defaultValue)
 
         if (serverUrl != defaultValue) {
             serverUrlInput.setText(serverUrl)
         }
     }
 
-    fun save (view: View) {
-        Log.i(TAG, "Saving Preferences")
-        val serverUrlInput = findViewById<EditText>(R.id.serverUrl)
+    fun saveTargetUrl (view: View) {
+        Log.i(TAG, "Saving Preferences - target server")
         val serverUrl = serverUrlInput.text.toString()
 
-        val sharedPref = getPreferences(Context.MODE_PRIVATE) ?: return
+        val sharedPref = getSharedPreferences(TAG, Context.MODE_PRIVATE) ?: return
         with (sharedPref.edit()) {
-            putString(getString(R.string.server_url), serverUrl)
+            putString(getString(R.string.server_url_label), serverUrl)
             commit()
         }
+
     }
 }
